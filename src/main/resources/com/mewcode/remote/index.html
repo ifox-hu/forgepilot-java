@@ -246,6 +246,9 @@ let currentStreamText = '';
 let currentThinkingEl = null;
 let currentThinkingText = '';
 let waitingIndicatorEl = null;
+let waitingStartedAt = 0;
+let waitingHideTimer = null;
+const MIN_WAITING_MS = 700;
 let autoScroll = true;
 let pingTimer = null;
 let connectedOnce = false;
@@ -515,7 +518,12 @@ function addThinking() {
 }
 
 function showWaitingIndicator() {
+  if (waitingHideTimer) {
+    clearTimeout(waitingHideTimer);
+    waitingHideTimer = null;
+  }
   if (waitingIndicatorEl) return;
+  waitingStartedAt = Date.now();
   waitingIndicatorEl = document.createElement('div');
   waitingIndicatorEl.className = 'waiting-indicator';
   waitingIndicatorEl.innerHTML =
@@ -525,10 +533,20 @@ function showWaitingIndicator() {
 }
 
 function hideWaitingIndicator() {
-  if (waitingIndicatorEl) {
-    waitingIndicatorEl.remove();
-    waitingIndicatorEl = null;
+  if (!waitingIndicatorEl) return;
+  const remaining = Math.max(0, MIN_WAITING_MS - (Date.now() - waitingStartedAt));
+  if (remaining > 0) {
+    if (!waitingHideTimer) {
+      waitingHideTimer = setTimeout(() => {
+        waitingHideTimer = null;
+        hideWaitingIndicator();
+      }, remaining);
+    }
+    return;
   }
+  waitingIndicatorEl.remove();
+  waitingIndicatorEl = null;
+  waitingStartedAt = 0;
 }
 
 function toggleThinking(header) {
