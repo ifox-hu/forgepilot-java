@@ -1,0 +1,18 @@
+build/
+.gradle/
+*.jar
+.idea/
+*.iml
+out/
+.mewcode/
+.npm-cache/
+config.local.yaml
+*.local.yaml
+*.log
+CLAUDE.md
+
+# Playwright MCP 运行日志
+.playwright-mcp/
+
+# 依赖元数据，不该出现在顶层
+META-INF/
