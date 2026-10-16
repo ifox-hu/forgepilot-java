@@ -171,6 +171,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cursor { animation: blink 1s step-end infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 
+/* 提问等待指示 */
+.waiting-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(187, 154, 247, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* 完成指示 */
 .done-indicator { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
 
@@ -224,6 +245,7 @@ let currentAssistantEl = null;
 let currentStreamText = '';
 let currentThinkingEl = null;
 let currentThinkingText = '';
+let waitingIndicatorEl = null;
 let autoScroll = true;
 let pingTimer = null;
 let connectedOnce = false;
@@ -281,6 +303,7 @@ function handleMessage(msg) {
         addSystem('Session: ' + msg.data.session + ' | CWD: ' + msg.data.cwd);
         connectedOnce = true;
       }
+      hideWaitingIndicator();
       break;
 
     case 'commands':
@@ -293,10 +316,12 @@ function handleMessage(msg) {
 
     case 'clear':
       messagesEl.innerHTML = '';
+      hideWaitingIndicator();
       addSystem('Conversation cleared.');
       break;
 
     case 'command_done':
+      hideWaitingIndicator();
       streaming = false;
       updateUI();
       break;
@@ -312,6 +337,7 @@ function handleMessage(msg) {
     }
 
     case 'stream_text':
+      hideWaitingIndicator();
       if (currentThinkingEl) {
         currentThinkingEl.querySelector('.thinking-header span:last-child').textContent = '💭 Thought';
         currentThinkingEl = null;
@@ -334,6 +360,7 @@ function handleMessage(msg) {
       break;
 
     case 'thinking_text':
+      hideWaitingIndicator();
       if (!currentThinkingEl) {
         currentThinkingEl = addThinking();
         currentThinkingText = '';
@@ -343,6 +370,7 @@ function handleMessage(msg) {
       break;
 
     case 'tool_use':
+      hideWaitingIndicator();
       if (currentThinkingEl) {
         currentThinkingEl.querySelector('.thinking-header span:last-child').textContent = '💭 Thought';
         currentThinkingEl = null;
@@ -356,10 +384,12 @@ function handleMessage(msg) {
       break;
 
     case 'permission_request':
+      hideWaitingIndicator();
       addPermissionDialog(msg.data);
       break;
 
     case 'ask_user':
+      hideWaitingIndicator();
       addAskUserDialog(msg.data);
       break;
 
@@ -367,6 +397,7 @@ function handleMessage(msg) {
       break;
 
     case 'loop_complete':
+      hideWaitingIndicator();
       if (currentAssistantEl) {
         updateAssistant(currentAssistantEl, currentStreamText, false);
         currentAssistantEl = null;
@@ -388,6 +419,7 @@ function handleMessage(msg) {
       break;
 
     case 'error':
+      hideWaitingIndicator();
       addError(msg.data.message);
       streaming = false;
       updateUI();
@@ -480,6 +512,23 @@ function addThinking() {
   messagesEl.appendChild(div);
   scrollToBottom();
   return div;
+}
+
+function showWaitingIndicator() {
+  if (waitingIndicatorEl) return;
+  waitingIndicatorEl = document.createElement('div');
+  waitingIndicatorEl.className = 'waiting-indicator';
+  waitingIndicatorEl.innerHTML =
+    '<span class="spinner" aria-hidden="true"></span><span>正在思考...</span>';
+  messagesEl.appendChild(waitingIndicatorEl);
+  scrollToBottom();
+}
+
+function hideWaitingIndicator() {
+  if (waitingIndicatorEl) {
+    waitingIndicatorEl.remove();
+    waitingIndicatorEl = null;
+  }
 }
 
 function toggleThinking(header) {
@@ -687,6 +736,7 @@ function sendMessage() {
   inputEl.value = '';
   inputEl.style.height = 'auto';
   streaming = true;
+  showWaitingIndicator();
   updateUI();
 }
 

@@ -2,7 +2,7 @@ providers:
   - name: default
     protocol: openai-compat
     base_url: https://your-api-host/v1
-    api_key: ${OPENAI_API_KEY}
+    api_key:
     model: gpt-6.1-sol
     thinking: false
 
